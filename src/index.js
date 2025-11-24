@@ -16,20 +16,24 @@ master.inventory=[
     new StorageBin(4,25,"D4")
 ].sort(StorageBin.compare);
 
-const pkg=new Package("001",12,"VSKP");
+const packages=[
+    new Package("001",25,"VSKP"),
+    new Package("002",12,"BZA"),
+    new Package("003",7,"HYD")
+];
 
-const bin=BestFitBin(master.inventory,pkg.size);
-console.log(bin);
 
 
-async function main() {
-    if(bin)
-    {
-        while(!master.db)
-        {
-            await new Promise(r=>setTimeout(r,50));
-        }
-    
+
+
+async function main(packages,index=0) {
+   if(index>=packages.length)
+        return;
+    const pkg=packages[index];
+    const bin=BestFitBin(master.inventory,pkg.size);
+
+     while (!master.db) 
+     await new Promise(r => setTimeout(r, 50));
 
     await master.db.exec(`CREATE TABLE IF NOT EXISTS shipment_logs(
     tracking_id TEXT NOT NULL,
@@ -38,15 +42,23 @@ async function main() {
     status TEXT NOT NULL
 )
 `);
- writeLog(await master.db,pkg.tracking_id,bin.bin_id,"BIN ASSIGNED");   
+  if (bin) {
+        console.log("Best Fit Bin for", pkg.tracking_id, ":", bin);
+        await writeLog(await master.db, pkg.tracking_id, bin.bin_id, "BIN ASSIGNED");
+    } else {
+        console.log("No bin fits package", pkg.tracking_id);
+        await writeLog(await master.db, pkg.tracking_id, null, "BIN_NOT_ASSIGNED");
+    }
 
-}
+    
 master.conveyorQueue.enqueue(pkg);
-console.log("Remove from contrainer",master.conveyorQueue.dequeue());
+console.log("Remove from container:",master.conveyorQueue.dequeue());
 
-master.loadingStack.push("Box1");
-master.loadingStack.push("Box2");
-master.loadingStack.rollback_load(2);
+master.loadingStack.push(pkg);
+master.loadingStack.rollback_load(1);
+
+await main(packages,index+1);
+}
 
 const fragile=[
     {size:5},
@@ -55,5 +67,5 @@ const fragile=[
 ];
 
 console.log("Can the fragile items be fitted?",canFitPackages(fragile,10));
-}
-main();
+
+main(packages);
