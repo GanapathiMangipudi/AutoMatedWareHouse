@@ -22,10 +22,6 @@ const packages=[
     new Package("003",7,"HYD")
 ];
 
-
-
-
-
 async function main(packages,index=0) {
    if(index>=packages.length)
         return;
@@ -67,5 +63,4 @@ const fragile=[
 ];
 
 console.log("Can the fragile items be fitted?",canFitPackages(fragile,10));
-
 main(packages);
